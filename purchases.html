@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purchases</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
+  body { background:#f0f2f5; min-height:100vh; }
+  .navbar { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:18px 30px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  .navbar h1 { font-size:22px; }
+  .nav-links a { color:#fff; text-decoration:none; margin-left:15px; padding:8px 16px; border-radius:6px; font-size:14px; }
+  .nav-links a:hover, .nav-links a.active { background:rgba(255,255,255,0.2); }
+  .container { padding:30px; max-width:1400px; margin:0 auto; }
+  .card { background:#fff; padding:25px; border-radius:14px; margin-bottom:25px; box-shadow:0 4px 15px rgba(0,0,0,0.08); }
+  .card h2 { color:#444; margin-bottom:20px; border-bottom:2px solid #f0f2f5; padding-bottom:10px; }
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:15px; }
+  .form-group { display:flex; flex-direction:column; }
+  .form-group label { font-size:13px; color:#555; margin-bottom:6px; font-weight:600; }
+  .form-group input, .form-group select { padding:11px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+  .form-group input:focus, .form-group select:focus { outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,0.15); }
+  .btn { padding:12px 25px; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; }
+  .btn-primary { background:#667eea; color:#fff; }
+  .btn-success { background:#28a745; color:#fff; }
+  .btn-warning { background:#ffc107; color:#333; padding:6px 12px; font-size:12px; }
+  .btn-danger { background:#dc3545; color:#fff; padding:6px 12px; font-size:12px; }
+  .btn-secondary { background:#6c757d; color:#fff; }
+  .form-actions { margin-top:20px; display:flex; gap:10px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:#f8f9fa; color:#555; padding:12px; text-align:left; font-weight:600; }
+  td { padding:11px; border-bottom:1px solid #eee; }
+  tr:hover td { background:#f8f9ff; }
+  .empty { text-align:center; color:#999; padding:30px; }
+  .toast { position:fixed; top:20px; right:20px; padding:15px 22px; border-radius:8px; color:#fff; font-weight:600; z-index:9999; animation:slideIn .3s; box-shadow:0 6px 20px rgba(0,0,0,0.2); }
+  .toast.success { background:#28a745; }
+  .toast.error { background:#dc3545; }
+  @keyframes slideIn { from{transform:translateX(400px);opacity:0;} to{transform:translateX(0);opacity:1;} }
+  .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; padding:15px; }
+  .modal.active { display:flex; }
+  .modal-content { background:#fff; padding:30px; border-radius:14px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; }
+  .modal-content h3 { margin-bottom:20px; color:#444; }
+  .table-wrap { overflow-x:auto; }
+  @media(max-width:600px){ .navbar{flex-direction:column;} .container{padding:15px;} table{font-size:11px;} th,td{padding:8px 5px;} }
+</style>
+</head>
+<body>
+<div class="navbar">
+  <h1>📦 Purchases Management</h1>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="sales.html">Sales</a>
+    <a href="#" class="active">Purchases</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>➕ Add New Purchase</h2>
+    <form id="purchaseForm" onsubmit="submitPurchase(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Payment Type *</label>
+          <select id="paymentType" required>
+            <option value="">-- Select --</option>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Credit">Credit</option>
+            <option value="Online Payment">Online Payment</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Item Name *</label><input type="text" id="itemName" required></div>
+        <div class="form-group"><label>Total Amount (Rs.) *</label><input type="number" id="totalAmount" min="0" step="0.01" required></div>
+        <div class="form-group"><label>Date & Time</label><input type="datetime-local" id="dateTime"></div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success">💾 Add Purchase</button>
+        <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>📋 Purchase History</h2>
+    <div id="purchaseList" class="table-wrap"><div class="empty">Loading...</div></div>
+  </div>
+</div>
+
+<div class="modal" id="editModal">
+  <div class="modal-content">
+    <h3>✏️ Edit Purchase</h3>
+    <form id="editForm" onsubmit="submitEdit(event)">
+      <input type="hidden" id="editRowIndex">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Payment Type</label>
+          <select id="editPaymentType" required>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Credit">Credit</option>
+            <option value="Online Payment">Online Payment</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Item Name</label><input type="text" id="editItemName" required></div>
+        <div class="form-group"><label>Total Amount</label><input type="number" id="editTotalAmount" min="0" step="0.01" required></div>
+        <div class="form-group"><label>Date & Time</label><input type="text" id="editDateTime"></div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">💾 Update</button>
+        <button type="button" class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // ⚠️ මෙතන ඔබේ Google Apps Script Web App URL එක paste කරන්න
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyrB-cs8a2X-7NMkwE1MjTdjbI-wVMGMWM8r4NqjyNM6HW8I28Eh9Kz2wY3XEP5D78avw/exec';
+  
+  function fmt(n){ return 'Rs. ' + Number(n||0).toLocaleString('en-LK',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  
+  async function api(action, extra={}) {
+    const res = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...extra }),
+      headers: {'Content-Type':'text/plain;charset=utf-8'}
+    });
+    return res.json();
+  }
+  
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(), 3000);
+  }
+  
+  function setDefaultDateTime() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('dateTime').value = now.toISOString().slice(0,16);
+  }
+  
+  function resetForm() {
+    document.getElementById('purchaseForm').reset();
+    setDefaultDateTime();
+  }
+  
+  async function submitPurchase(e) {
+    e.preventDefault();
+    const data = {
+      paymentType: document.getElementById('paymentType').value,
+      itemName: document.getElementById('itemName').value.trim(),
+      totalAmount: document.getElementById('totalAmount').value,
+      dateTime: document.getElementById('dateTime').value.replace('T',' ')
+    };
+    try {
+      const res = await api('addPurchase', { data });
+      if (res.success) { showToast('✅ '+res.message, 'success'); resetForm(); loadPurchases(); }
+      else showToast('❌ '+res.message, 'error');
+    } catch(err) { showToast('❌ '+err, 'error'); }
+  }
+  
+  async function loadPurchases() {
+    try {
+      const res = await api('getPurchases');
+      if (res.success) renderPurchases(res.data);
+    } catch(e) { console.error(e); }
+  }
+  
+  function renderPurchases(data) {
+    const el = document.getElementById('purchaseList');
+    if (!data || !data.length) { el.innerHTML = '<div class="empty">No purchases yet</div>'; return; }
+    const list = data.slice().reverse();
+    let html = '<table><tr><th>Date & Time</th><th>Payment Type</th><th>Item Name</th><th>Total Amount</th><th>Actions</th></tr>';
+    list.forEach(p => {
+      html += `<tr>
+        <td>${p.dateTime||''}</td>
+        <td>${p.paymentType||''}</td>
+        <td>${p.itemName||''}</td>
+        <td><b>${fmt(p.totalAmount)}</b></td>
+        <td>
+          <button class="btn btn-warning" onclick='openEdit(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Edit</button>
+          <button class="btn btn-danger" onclick="delPurchase(${p.rowIndex})">Delete</button>
+        </td>
+      </tr>`;
+    });
+    el.innerHTML = html + '</table>';
+  }
+  
+  function openEdit(p) {
+    document.getElementById('editRowIndex').value = p.rowIndex;
+    document.getElementById('editPaymentType').value = p.paymentType||'Cash';
+    document.getElementById('editItemName').value = p.itemName||'';
+    document.getElementById('editTotalAmount').value = p.totalAmount||'';
+    document.getElementById('editDateTime').value = p.dateTime||'';
+    document.getElementById('editModal').classList.add('active');
+  }
+  
+  function closeEdit() { document.getElementById('editModal').classList.remove('active'); }
+  
+  async function submitEdit(e) {
+    e.preventDefault();
+    const rowIndex = parseInt(document.getElementById('editRowIndex').value);
+    const data = {
+      paymentType: document.getElementById('editPaymentType').value,
+      itemName: document.getElementById('editItemName').value.trim(),
+      totalAmount: document.getElementById('editTotalAmount').value,
+      dateTime: document.getElementById('editDateTime').value
+    };
+    try {
+      const res = await api('updatePurchase', { rowIndex, data });
+      if (res.success) { showToast('✅ '+res.message,'success'); closeEdit(); loadPurchases(); }
+      else showToast('❌ '+res.message,'error');
+    } catch(err) { showToast('❌ '+err,'error'); }
+  }
+  
+  async function delPurchase(rowIndex) {
+    if (!confirm('Delete this purchase?')) return;
+    try {
+      const res = await api('deletePurchase', { rowIndex });
+      if (res.success) { showToast('🗑️ '+res.message,'success'); loadPurchases(); }
+      else showToast('❌ '+res.message,'error');
+    } catch(err) { showToast('❌ '+err,'error'); }
+  }
+  
+  setDefaultDateTime();
+  loadPurchases();
+</script>
+</body>
+</html>
