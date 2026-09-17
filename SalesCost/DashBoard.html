@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sales & Cost Entry</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f7fb;
+    color: #17212b;
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 1000px;
+    margin: auto;
+    padding: 25px;
+}
+
+.header {
+    background: #ffffff;
+    padding: 22px;
+    border-radius: 18px;
+    margin-bottom: 22px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+}
+
+.header h1 {
+    font-size: 26px;
+    margin-bottom: 8px;
+}
+
+.header p {
+    color: #71808f;
+}
+
+.tabs {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.tab {
+    flex: 1;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #edf1f6;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.tab.active {
+    background: #2563eb;
+    color: white;
+}
+
+.form-card {
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+}
+
+.form-card h2 {
+    margin-bottom: 22px;
+    font-size: 21px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full {
+    grid-column: 1 / -1;
+}
+
+label {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #dce5e9;
+    border-radius: 9px;
+    font-size: 15px;
+    outline: none;
+    background: white;
+}
+
+input:focus,
+select:focus {
+    border-color: #2563eb;
+}
+
+input[readonly] {
+    background: #f1f5f9;
+}
+
+.optional {
+    color: #71808f;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.total-box {
+    margin-top: 22px;
+    padding: 20px;
+    background: #eff6ff;
+    border-radius: 12px;
+    border: 1px solid #bfdbfe;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+.total-row:last-child {
+    margin-bottom: 0;
+}
+
+.total-row strong {
+    color: #1d4ed8;
+}
+
+.button-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+button {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.save-btn {
+    flex: 1;
+    padding: 15px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.save-btn:hover {
+    background: #1d4ed8;
+}
+
+.clear-btn {
+    padding: 15px 25px;
+    background: #f1f5f9;
+    color: #334155;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+}
+
+.status {
+    margin-top: 18px;
+    padding: 12px;
+    border-radius: 8px;
+    display: none;
+    font-size: 14px;
+}
+
+.status.success {
+    display: block;
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status.error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+@media (max-width: 600px) {
+
+    .container {
+        padding: 15px;
+    }
+
+    .header {
+        padding: 18px;
+    }
+
+    .header h1 {
+        font-size: 22px;
+    }
+
+    .form-card {
+        padding: 18px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .form-group.full {
+        grid-column: auto;
+    }
+
+    .tabs {
+        gap: 8px;
+    }
+
+    .tab {
+        padding: 12px 8px;
+        font-size: 14px;
+    }
+
+    .button-row {
+        flex-direction: column;
+    }
+
+    .clear-btn {
+        width: 100%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>Sales & Cost</h1>
+        <p>Enter your sales and cost records easily.</p>
+
+        <div class="tabs">
+            <button class="tab active" id="salesTab"
+                    onclick="changeSheet('Sales')">
+                Sales
+            </button>
+
+            <button class="tab" id="costTab"
+                    onclick="changeSheet('Cost')">
+                Cost
+            </button>
+        </div>
+    </div>
+
+    <div class="form-card">
+
+        <h2 id="formTitle">Add Sales Record</h2>
+
+        <form id="entryForm">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Item Name</label>
+
+                    <select id="itemName" required>
+                        <option value="">Select Item</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="customerGroup">
+                    <label>Customer Name</label>
+
+                    <input type="text"
+                           id="customerName"
+                           placeholder="Enter customer name">
+                </div>
+
+                <div class="form-group">
+                    <label>Location</label>
+
+                    <select id="location" required>
+                        <option value="">Select Location</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Quantity</label>
+
+                    <input type="number"
+                           id="quantity"
+                           min="0.01"
+                           step="any"
+                           placeholder="Enter quantity"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label>Unit Price</label>
+
+                    <input type="number"
+                           id="unitPrice"
+                           min="0"
+                           step="any"
+                           placeholder="Enter unit price"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label>Total Price</label>
+
+                    <input type="number"
+                           id="totalPrice"
+                           readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Service Charge Rate
+                        <span class="optional">(Optional)</span>
+                    </label>
+
+                    <input type="number"
+                           id="serviceRate"
+                           min="0"
+                           max="100"
+                           step="any"
+                           placeholder="Example: 8">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Service Charge Amount
+                        <span class="optional">(Optional)</span>
+                    </label>
+
+                    <input type="number"
+                           id="serviceAmount"
+                           min="0"
+                           step="any"
+                           placeholder="Auto calculated">
+                </div>
+
+            </div>
+
+            <div class="total-box">
+
+                <div class="total-row">
+                    <span>Subtotal</span>
+                    <strong id="subtotalDisplay">0.00</strong>
+                </div>
+
+                <div class="total-row">
+                    <span>Service Charge</span>
+                    <strong id="serviceDisplay">0.00</strong>
+                </div>
+
+                <div class="total-row">
+                    <span>Grand Total</span>
+                    <strong id="grandTotalDisplay">0.00</strong>
+                </div>
+
+            </div>
+
+            <div class="button-row">
+
+                <button type="submit" class="save-btn" id="saveBtn">
+                    Save Record
+                </button>
+
+                <button type="button"
+                        class="clear-btn"
+                        onclick="clearForm()">
+                    Clear
+                </button>
+
+                <button type="button"
+                        class="clear-btn"
+                        onclick="window.location.href='index.html'">
+                    Back to Dashboard
+                </button>
+
+            </div>
+
+            <div class="status" id="status"></div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+
+// Google Apps Script Web App URL
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbytbSrf0QpuM4uB8fZhriTh9KJChBHlh_0ikXtwfekIQLUcuJfc4AePqesU-tsxRdW-/exec";
+
+let currentSheet = "Sales";
+
+const salesItems = [
+    "Chili",
+    "Rice",
+    "Potato",
+    "Onion",
+    "Other"
+];
+
+const costItems = [
+    "Transport",
+    "Electricity",
+    "Water",
+    "Salary",
+    "Other"
+];
+
+const locations = [
+    "Meegoda",
+    "Padukka",
+    "Colombo",
+    "Nawala",
+    "Pannipitiya",
+    "Other"
+];
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    document.getElementById("date").value =
+        new Date().toISOString().split("T")[0];
+
+    loadDropdowns();
+
+    document.getElementById("quantity")
+        .addEventListener("input", calculateTotal);
+
+    document.getElementById("unitPrice")
+        .addEventListener("input", calculateTotal);
+
+    document.getElementById("serviceRate")
+        .addEventListener("input", calculateServiceCharge);
+
+    document.getElementById("serviceAmount")
+        .addEventListener("input", updateSummary);
+
+    document.getElementById("entryForm")
+        .addEventListener("submit", saveRecord);
+
+});
+
+function changeSheet(sheet) {
+
+    currentSheet = sheet;
+
+    document.getElementById("salesTab")
+        .classList.toggle("active", sheet === "Sales");
+
+    document.getElementById("costTab")
+        .classList.toggle("active", sheet === "Cost");
+
+    document.getElementById("formTitle").textContent =
+        "Add " + sheet + " Record";
+
+    document.getElementById("customerGroup").style.display =
+        sheet === "Sales" ? "flex" : "none";
+
+    document.getElementById("customerName").required =
+        sheet === "Sales";
+
+    loadDropdowns();
+
+    clearForm();
+
+}
+
+function loadDropdowns() {
+
+    const itemSelect = document.getElementById("itemName");
+
+    const itemList =
+        currentSheet === "Sales" ? salesItems : costItems;
+
+    itemSelect.innerHTML =
+        '<option value="">Select Item</option>';
+
+    itemList.forEach(item => {
+
+        const option = document.createElement("option");
+
+        option.value = item;
+        option.textContent = item;
+
+        itemSelect.appendChild(option);
+
+    });
+
+    const locationSelect = document.getElementById("location");
+
+    locationSelect.innerHTML =
+        '<option value="">Select Location</option>';
+
+    locations.forEach(location => {
+
+        const option = document.createElement("option");
+
+        option.value = location;
+        option.textContent = location;
+
+        locationSelect.appendChild(option);
+
+    });
+
+}
+
+function calculateTotal() {
+
+    const quantity =
+        parseFloat(document.getElementById("quantity").value) || 0;
+
+    const unitPrice =
+        parseFloat(document.getElementById("unitPrice").value) || 0;
+
+    const total = quantity * unitPrice;
+
+    document.getElementById("totalPrice").value =
+        total.toFixed(2);
+
+    calculateServiceCharge();
+
+}
+
+function calculateServiceCharge() {
+
+    const total =
+        parseFloat(document.getElementById("totalPrice").value) || 0;
+
+    const rate =
+        parseFloat(document.getElementById("serviceRate").value) || 0;
+
+    const amount = total * rate / 100;
+
+    document.getElementById("serviceAmount").value =
+        rate > 0 ? amount.toFixed(2) : "";
+
+    updateSummary();
+
+}
+
+function updateSummary() {
+
+    const total =
+        parseFloat(document.getElementById("totalPrice").value) || 0;
+
+    const service =
+        parseFloat(document.getElementById("serviceAmount").value) || 0;
+
+    document.getElementById("subtotalDisplay").textContent =
+        total.toFixed(2);
+
+    document.getElementById("serviceDisplay").textContent =
+        service.toFixed(2);
+
+    document.getElementById("grandTotalDisplay").textContent =
+        (total + service).toFixed(2);
+
+}
+
+async function saveRecord(event) {
+
+    event.preventDefault();
+
+    const quantity =
+        parseFloat(document.getElementById("quantity").value);
+
+    const unitPrice =
+        parseFloat(document.getElementById("unitPrice").value);
+
+    const totalPrice =
+        parseFloat(document.getElementById("totalPrice").value);
+
+    const serviceRate =
+        parseFloat(document.getElementById("serviceRate").value) || 0;
+
+    const serviceAmount =
+        parseFloat(document.getElementById("serviceAmount").value) || 0;
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+        showStatus("Enter a valid quantity.", "error");
+        return;
+    }
+
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        showStatus("Enter a valid unit price.", "error");
+        return;
+    }
+
+    const data = {
+
+        sheet: currentSheet,
+
+        date: document.getElementById("date").value,
+
+        itemName: document.getElementById("itemName").value,
+
+        customerName:
+            document.getElementById("customerName").value,
+
+        location:
+            document.getElementById("location").value,
+
+        quantity: quantity,
+
+        unitPrice: unitPrice,
+
+        totalPrice: totalPrice,
+
+        serviceRate: serviceRate,
+
+        serviceAmount: serviceAmount
+
+    };
+
+    if (!data.itemName || !data.location) {
+
+        showStatus("Select Item Name and Location.", "error");
+
+        return;
+
+    }
+
+    if (!SCRIPT_URL ||
+        SCRIPT_URL === "PASTE_YOUR_SCRIPT_URL_HERE") {
+
+        showStatus(
+            "Please add your Google Apps Script URL.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    const saveBtn = document.getElementById("saveBtn");
+
+    saveBtn.textContent = "Saving...";
+    saveBtn.disabled = true;
+
+    try {
+
+        const response = await fetch(SCRIPT_URL, {
+
+            method: "POST",
+
+            body: JSON.stringify(data)
+
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+
+            showStatus(
+                "Record saved successfully!",
+                "success"
+            );
+
+            clearForm();
+
+        } else {
+
+            showStatus(
+                result.message || "Failed to save record.",
+                "error"
+            );
+
+        }
+
+    } catch (error) {
+
+        showStatus(
+            "Unable to connect to Google Sheets.",
+            "error"
+        );
+
+    } finally {
+
+        saveBtn.textContent = "Save Record";
+        saveBtn.disabled = false;
+
+    }
+
+}
+
+function clearForm() {
+
+    document.getElementById("entryForm").reset();
+
+    document.getElementById("date").value =
+        new Date().toISOString().split("T")[0];
+
+    document.getElementById("totalPrice").value = "";
+
+    document.getElementById("serviceAmount").value = "";
+
+    document.getElementById("subtotalDisplay").textContent = "0.00";
+
+    document.getElementById("serviceDisplay").textContent = "0.00";
+
+    document.getElementById("grandTotalDisplay").textContent = "0.00";
+
+    document.getElementById("status").style.display = "none";
+
+}
+
+function showStatus(message, type) {
+
+    const status = document.getElementById("status");
+
+    status.textContent = message;
+
+    status.className = "status " + type;
+
+}
+
+</script>
+
+</body>
+</html>
